@@ -21,25 +21,25 @@ public final class RemoteImageProvider {
     }
     
     func image(at url: URL) async throws -> PlatformImage {
-        let imageData: Data
-        
-        if let persistedImageData = try persistedImageData(for: url) {
-            imageData = persistedImageData
-        } else {
-            imageData = try await networkInterface.data(from: url)
-            do {
-                try persistImage(imageData, for: url)
-            } catch {
-                Logger().error("Could not persist image at \(url)")
-            }
-        }
-        
+        let imageData = try await imageData(for: url)
         
         guard let output = PlatformImage(data: imageData) else {
             throw CannotParseImageData()
         }
         
         return output
+    }
+    
+    func imageData(for url: URL) async throws -> Data {
+        if let persistedImageData = try persistedImageData(for: url) {
+            return persistedImageData
+        } else {
+            let imageData = try await networkInterface.data(from: url)
+            
+            persistImage(imageData, for: url)
+            
+            return imageData
+        }
     }
     
     private func persistedImageData(for url: URL) throws -> Data? {
@@ -54,9 +54,10 @@ public final class RemoteImageProvider {
         return try manager?.imageData(for: identifier)
     }
     
-    private func persistImage(_ imageData: Data, for url: URL) throws {
+    private func persistImage(_ imageData: Data, for url: URL) {
         guard let identifier = RemoteImageIdentifier(url: url) else {
-            throw CannotHashURL(url: url)
+            Logger().error("Could not persist image at \(url)")
+            return
         }
         
         persistenceManagers.forEach { manager in
