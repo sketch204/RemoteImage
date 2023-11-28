@@ -2,12 +2,16 @@ import Foundation
 import os
 
 public final class RemoteImageProvider {
-    public static let shared = RemoteImageProvider(
-        networkInterface: URLSessionBasedNetworkInterface(),
-        persistenceManagers: [
+    public static let shared = {
+        let managers: [RemoteImageProviderPersistenceManager?] = [
             MemoryBasedPersistenceManager(),
+            try? FileBasedPersistenceManager(),
         ]
-    )
+        return RemoteImageProvider(
+            networkInterface: URLSessionBasedNetworkInterface(),
+            persistenceManagers: managers.compactMap({ $0 })
+        )
+    }()
     
     public var networkInterface: RemoteImageProviderNetworkInterface
     public var persistenceManagers: [RemoteImageProviderPersistenceManager]
