@@ -30,7 +30,7 @@ public final class RemoteImageProvider {
         return output
     }
     
-    func imageData(for url: URL) async throws -> Data {
+    private func imageData(for url: URL) async throws -> Data {
         if let persistedImageData = try persistedImageData(for: url) {
             return persistedImageData
         } else {
