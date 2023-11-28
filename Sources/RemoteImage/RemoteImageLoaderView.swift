@@ -1,6 +1,8 @@
 import SwiftUI
 
-public struct RemoteImageLoaderView<Content>: View where Content: View {
+public struct RemoteImageLoaderView<LoadingContent, SuccessContent, FailureContent>: View
+where LoadingContent: View, SuccessContent: View, FailureContent: View
+{
     public enum State {
         case loading
         case success(Image)
@@ -8,37 +10,55 @@ public struct RemoteImageLoaderView<Content>: View where Content: View {
     }
     
     @SwiftUI.State private var state: State = .loading
+    @SwiftUI.State private var task: Task<Void, Never>?
     
     let url: URL
     let provider: RemoteImageProvider
-    let contents: (State) -> Content
+    let loadingContents: () -> LoadingContent
+    let successContents: (Image) -> SuccessContent
+    let failureContents: (Error) -> FailureContent
     
     public init(
         _ url: URL,
         provider: RemoteImageProvider = .shared,
-        @ViewBuilder contents: @escaping (State) -> Content
+        @ViewBuilder loadingContents: @escaping () -> LoadingContent,
+        @ViewBuilder successContents: @escaping (Image) -> SuccessContent,
+        @ViewBuilder failureContents: @escaping (Error) -> FailureContent
     ) {
         self.url = url
         self.provider = provider
-        self.contents = contents
+        self.loadingContents = loadingContents
+        self.successContents = successContents
+        self.failureContents = failureContents
     }
     
     public var body: some View {
-        contents(state)
-            .onAppear {
-                load(url: url)
+        Group {
+            switch state {
+            case .loading:
+                loadingContents()
+            case .success(let image):
+                successContents(image)
+            case .failure(let error):
+                failureContents(error)
             }
-            .onChange(of: url) { url in
-                load(url: url)
-            }
+        }
+        .onAppear {
+            load(url: url)
+        }
+        .onChange(of: url) { url in
+            load(url: url)
+        }
     }
     
     private func load(url: URL) {
         state = .loading
         
-        Task {
+        task?.cancel()
+        task = Task {
             do {
                 let rawImage = try await provider.image(at: url)
+                guard !(task?.isCancelled ?? true) else { return }
                 state = .success(Image(platformImage: rawImage))
             } catch {
                 state = .failure(error)
