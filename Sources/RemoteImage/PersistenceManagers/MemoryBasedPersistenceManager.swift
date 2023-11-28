@@ -1,6 +1,6 @@
 import Foundation
 
-public final class MemoryBasePersistenceManager: RemoteImageProviderPersistenceManager {
+public final class MemoryBasedPersistenceManager: RemoteImageProviderPersistenceManager {
     private var store = [RemoteImageIdentifier: Data]()
     
     public func persist(_ imageData: Data, for identifier: RemoteImageIdentifier) {

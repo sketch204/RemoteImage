@@ -5,7 +5,7 @@ public final class RemoteImageProvider {
     public static let shared = RemoteImageProvider(
         networkInterface: URLSessionBasedNetworkInterface(),
         persistenceManagers: [
-            MemoryBasePersistenceManager(),
+            MemoryBasedPersistenceManager(),
         ]
     )
     
